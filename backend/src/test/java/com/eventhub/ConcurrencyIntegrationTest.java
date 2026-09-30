@@ -59,7 +59,7 @@ class ConcurrencyIntegrationTest {
         assertThat(events.search(null, null, null, 0, 50).totalElements()).isGreaterThanOrEqualTo(1);
         var matching = events.search("Evento " + suffix, "sÃO pAULO", null, 0, 50);
         assertThat(matching.totalElements()).isEqualTo(1);
-        assertThat(matching.content().getFirst().id()).isEqualTo(eventId);
+        assertThat(matching.content().get(0).id()).isEqualTo(eventId);
         assertThat(events.search("Evento " + suffix, null, Instant.now().plusSeconds(172800), 0, 50).totalElements()).isZero();
     }
 
