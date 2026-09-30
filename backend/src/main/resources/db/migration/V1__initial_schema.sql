@@ -16,7 +16,7 @@ CREATE TABLE user_roles (
 CREATE TABLE refresh_tokens (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    token_hash CHAR(64) NOT NULL UNIQUE,
+    token_hash VARCHAR(64) NOT NULL UNIQUE,
     expires_at TIMESTAMPTZ NOT NULL,
     revoked_at TIMESTAMPTZ,
     replaced_by UUID,
@@ -33,7 +33,7 @@ CREATE TABLE events (
     venue VARCHAR(160) NOT NULL,
     address VARCHAR(220) NOT NULL,
     city VARCHAR(120) NOT NULL,
-    state CHAR(2) NOT NULL,
+    state VARCHAR(2) NOT NULL,
     timezone VARCHAR(80) NOT NULL,
     starts_at TIMESTAMPTZ NOT NULL,
     ends_at TIMESTAMPTZ NOT NULL,
@@ -104,4 +104,5 @@ CREATE TABLE notification_outbox (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_outbox_pending ON notification_outbox(status, next_attempt_at);
+
 
