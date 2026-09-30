@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -28,7 +31,9 @@ public class CheckInService {
         var now = Instant.now();
         if (checkIns.insertIfAbsent(UUID.randomUUID(), ticket.getId(), eventId, organizerId, now) == 0) {
             var previous = checkIns.findByTicketId(ticket.getId()).orElseThrow();
-            throw new ApiException(HttpStatus.CONFLICT, "ALREADY_CHECKED_IN", "Ingresso já utilizado — check-in realizado às " + previous.getCheckedInAt() + ".");
+            var localTime = DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm", Locale.forLanguageTag("pt-BR"))
+                    .withZone(ZoneId.of(event.getTimezone())).format(previous.getCheckedInAt());
+            throw new ApiException(HttpStatus.CONFLICT, "ALREADY_CHECKED_IN", "Ingresso já utilizado — check-in realizado em " + localTime + ".");
         }
         return new Result("CHECKED_IN", "Ingresso válido — entrada autorizada", ticket.getPublicCode(), now);
     }
@@ -38,4 +43,5 @@ public class CheckInService {
 
     public record Result(String status, String message, String publicCode, Instant checkedInAt) {}
 }
+
 

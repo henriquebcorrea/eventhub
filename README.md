@@ -2,6 +2,10 @@
 
 Plataforma full stack para publicar eventos gratuitos, controlar inscrições e validar ingressos com QR Code. O projeto foi construído como um monólito modular, com foco em segurança, concorrência e uma experiência mobile adequada para a operação na entrada do evento.
 
+**Online:** [abrir EventHub](https://eventhub-alpha-sandy.vercel.app) · [API e Swagger](https://eventhub-api-3c8f.onrender.com/swagger-ui.html) · [health check](https://eventhub-api-3c8f.onrender.com/actuator/health)
+
+A demonstração pública utiliza Vercel Hobby, Render Free, Neon Free e Cloudinary Free. O envio de e-mails permanece em sandbox até existir um domínio de remetente verificado. Crie sua própria conta para experimentar; as credenciais de demonstração abaixo existem apenas no ambiente local com seed habilitado.
+
 ![Catálogo público do EventHub](docs/screenshots/home.png)
 
 <details>
@@ -186,7 +190,7 @@ Isso permite que o front-end traduza mensagens sem depender do texto retornado p
 
 ## Publicar sem custo e sem cartão
 
-O código está pronto para **Vercel Hobby + Render Free + Neon Free**. A publicação exige contas dos provedores; nenhum endereço de produção deve ser anunciado antes da validação da jornada completa. Não use o PostgreSQL gratuito da Render: ele expira após 30 dias.
+Esta instância está publicada em **Vercel Hobby + Render Free + Neon Free**. Não use o PostgreSQL gratuito da Render: ele expira após 30 dias. Para reproduzir a publicação em contas próprias:
 
 1. Crie um projeto **PostgreSQL 17 no Neon**, região AWS `us-east-1` (Virgínia). Guarde host, database, usuário e senha no painel do provedor.
 2. Importe este repositório como **Blueprint na Render** usando `render.yaml`. Ele seleciona apenas a instância `free`, na Virgínia, com Docker em `backend/`, health check `/actuator/health`, heap Java máximo de 256 MB e pool de duas conexões. Na criação, preencha `DB_URL` no formato `jdbc:postgresql://HOST/DATABASE?sslmode=require`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_PRIVATE_KEY` e `JWT_PUBLIC_KEY`. Gere o par RS256 com `scripts/generate-jwt-keys.ps1` em um terminal privado e **nunca** o inclua no Git, no README ou em capturas de tela. O segredo do QR é gerado pela Render e precisa continuar estável entre redeploys.
@@ -194,10 +198,11 @@ O código está pronto para **Vercel Hobby + Render Free + Neon Free**. A public
 4. Configure `FRONTEND_URL` na Render com a URL `https://...vercel.app` real e faça um redeploy. Para upload de capas, crie uma conta Cloudinary Free e configure `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` e `CLOUDINARY_API_SECRET` **somente na Render**. O browser recebe apenas uma assinatura curta para enviar diretamente a imagem.
 5. Mantenha `RESEND_API_KEY` ausente: o worker confirma a outbox em modo sandbox, sem enviar e-mail. O ingresso continua disponível em **Meus ingressos**. Ative o Resend apenas depois de verificar um domínio remetente.
 
-Depois de cada push em `main`, confira CI, deployment da Render e deployment da Vercel. Verifique `https://SUA-API.onrender.com/actuator/health`, `https://SUA-API.onrender.com/swagger-ui.html` e a página pública. A instância Render Free adormece após 15 minutos; o primeiro acesso pode levar cerca de um minuto. O catálogo espera até 90 segundos e, se a API não responder, exibe uma mensagem de indisponibilidade com nova tentativa automática, sem confundir falha com busca vazia. Evite serviços artificiais de ping para contornar os limites gratuitos.
+Depois de cada push em `main`, confira CI e os deployments da Render e da Vercel. Para redeploy manual, abra o serviço `eventhub-api` na Render e use **Manual Deploy**; na Vercel, abra o projeto `eventhub`, selecione o último deployment e use **Redeploy**. Verifique o [health check](https://eventhub-api-3c8f.onrender.com/actuator/health), o [Swagger](https://eventhub-api-3c8f.onrender.com/swagger-ui.html) e a [página pública](https://eventhub-alpha-sandy.vercel.app). A instância Render Free adormece após 15 minutos; o primeiro acesso pode levar 50 segundos ou mais. O catálogo espera até 90 segundos e, se a API não responder, exibe uma mensagem de indisponibilidade com nova tentativa automática, sem confundir falha com busca vazia. Evite serviços artificiais de ping para contornar os limites gratuitos.
 
 Teste no endereço público: cadastro de organizador, publicação de evento com capa, cadastro de participante, inscrição, QR, primeiro check-in, rejeição do segundo check-in e dashboard. Confirme também HTTPS, layout mobile, cookies `HttpOnly`/`Secure` e ausência de segredos no Git. Se o processo Java não couber nos 512 MB gratuitos, interrompa o deploy e avalie outro plano somente com autorização explícita do proprietário.
 
 ## Próximas evoluções
 
 Pagamentos, lista de espera, recuperação de senha, painel administrativo, múltiplos tipos de ingresso, Redis e RabbitMQ estão fora do MVP. Eles só devem entrar quando houver uma necessidade mensurável, preservando a simplicidade operacional do monólito modular.
+
