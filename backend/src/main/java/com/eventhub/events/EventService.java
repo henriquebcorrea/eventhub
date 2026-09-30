@@ -2,6 +2,8 @@ package com.eventhub.events;
 
 import com.eventhub.shared.ApiException;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -85,7 +87,23 @@ public class EventService {
 
     @Transactional(readOnly = true)
     public PageView<EventView> search(String query, String city, Instant from, int page, int size) {
-        var result = events.searchPublished(blankToNull(query), blankToNull(city), from, PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 50)));
+        Specification<Event> filter = (root, criteria, cb) -> {
+            var predicate = cb.equal(root.get("status"), EventStatus.PUBLISHED);
+            var searchText = blankToNull(query);
+            if (searchText != null) {
+                var pattern = "%" + searchText.toLowerCase(Locale.ROOT) + "%";
+                predicate = cb.and(predicate, cb.or(
+                        cb.like(cb.lower(root.get("title")), pattern),
+                        cb.like(cb.lower(root.get("description")), pattern)));
+            }
+            var searchCity = blankToNull(city);
+            if (searchCity != null) {
+                predicate = cb.and(predicate, cb.equal(cb.lower(root.get("city")), searchCity.toLowerCase(Locale.ROOT)));
+            }
+            if (from != null) predicate = cb.and(predicate, cb.greaterThanOrEqualTo(root.<Instant>get("startsAt"), from));
+            return predicate;
+        };
+        var result = events.findAll(filter, PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 50), Sort.by("startsAt").ascending()));
         return new PageView<>(result.getContent().stream().map(e -> view(e, requireTicketType(e.getId()))).toList(), result.getNumber(), result.getSize(), result.getTotalElements(), result.getTotalPages());
     }
 
@@ -118,4 +136,5 @@ public class EventService {
                             String coverUrl, String coverPublicId, UUID ticketTypeId, int capacity, int confirmedCount, int available) {}
     public record PageView<T>(List<T> content, int page, int size, long totalElements, int totalPages) {}
 }
+
 
