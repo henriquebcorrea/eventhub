@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-eventhub}
+      POSTGRES_USER: ${POSTGRES_USER:-eventhub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eventhub}
+    ports:
+      - "5432:5432"
+    volumes:
+      - eventhub-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-eventhub} -d ${POSTGRES_DB:-eventhub}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-eventhub}
+      DB_USERNAME: ${POSTGRES_USER:-eventhub}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-eventhub}
+      JWT_ISSUER: ${JWT_ISSUER:-http://localhost:8080}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:-}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
+      JWT_ALLOW_EPHEMERAL: ${JWT_ALLOW_EPHEMERAL:-true}
+      QR_SIGNING_SECRET: ${QR_SIGNING_SECRET:-change-me-with-at-least-32-characters}
+      DEMO_SEED: ${DEMO_SEED:-true}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-EventHub <ingressos@example.com>}
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75.0
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://api:8080/api/v1
+    environment:
+      API_URL: http://api:8080/api/v1
+      NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1
+      COOKIE_SECURE: "false"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  eventhub-postgres:
+

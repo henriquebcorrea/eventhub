@@ -1,0 +1,20 @@
+import Link from "next/link";
+import { CheckCircle2, QrCode, Ticket, Users } from "lucide-react";
+import { EventActions } from "@/components/event-actions";
+import { MetricsChart } from "@/components/metrics-chart";
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { authenticatedGet } from "@/lib/server-api";
+import type { EventView, Metrics, PageView } from "@/lib/types";
+import { formatDate } from "@/lib/utils";
+interface Attendee { registrationId: string; name: string; email: string; status: string; registeredAt: string; }
+export default async function EventDashboard({ params }: { params: Promise<{ id: string }> }) {
+  const id = (await params).id;
+  const all = await authenticatedGet<EventView[]>("events/organizer/mine", `/organizador/eventos/${id}`); const event = all.find((item) => item.id === id);
+  if (!event) return <main className="container-shell py-14"><h1 className="text-3xl font-black">Evento não encontrado</h1></main>;
+  const [metrics, attendees] = await Promise.all([authenticatedGet<Metrics>(`organizer/events/${id}/metrics`, `/organizador/eventos/${id}`), authenticatedGet<PageView<Attendee>>(`organizer/events/${id}/attendees?page=0&size=25`, `/organizador/eventos/${id}`)]);
+  return <main className="container-shell py-10"><div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between"><div><div className="flex items-center gap-2"><Badge className={event.status === "DRAFT" ? "bg-amber-50 text-amber-700" : ""}>{event.status === "DRAFT" ? "Rascunho" : event.status === "CANCELLED" ? "Cancelado" : "Publicado"}</Badge><span className="text-sm text-slate-500">{formatDate(event.startsAt)}</span></div><h1 className="mt-2 text-4xl font-black tracking-[-.045em]">{event.title}</h1><p className="mt-2 text-slate-500">{event.venue} · {event.city}, {event.state}</p></div><div className="flex flex-wrap gap-2"><EventActions eventId={event.id} status={event.status} />{event.status === "PUBLISHED" && <Link href={`/organizador/eventos/${id}/check-in`} className={buttonVariants({ variant: "dark" })}><QrCode className="size-4" /> Abrir scanner</Link>}</div></div>
+    <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[["Inscritos", metrics.confirmed, Users], ["Capacidade", metrics.capacity, Ticket], ["Check-ins", metrics.checkedIn, CheckCircle2], ["Taxa de entrada", `${metrics.checkInRate}%`, QrCode]].map(([label, value, Icon]) => { const I = Icon as typeof Users; return <div className="surface p-5" key={String(label)}><I className="size-5 text-[var(--accent)]" /><p className="mt-4 text-3xl font-black tracking-[-.04em]">{String(value)}</p><p className="text-sm text-slate-500">{String(label)}</p></div>; })}</section>
+    <section className="mt-6 grid gap-6 lg:grid-cols-[1fr_.9fr]"><div className="surface p-6"><h2 className="text-xl font-black">Inscrições nos últimos 7 dias</h2><p className="text-sm text-slate-500">Evolução diária de participantes confirmados.</p><div className="mt-5"><MetricsChart data={metrics.registrationsByDay} /></div></div><div className="surface overflow-hidden"><div className="border-b border-slate-200 p-6"><h2 className="text-xl font-black">Participantes recentes</h2><p className="text-sm text-slate-500">{attendees.totalElements} {attendees.totalElements === 1 ? "inscrição" : "inscrições"} no total</p><Link href={`/organizador/eventos/${id}/inscritos`} className="mt-2 inline-block text-sm font-bold text-[var(--primary)]">Ver todos os inscritos →</Link></div><div className="divide-y divide-slate-100">{attendees.content.slice(0, 6).map((person) => <div key={person.registrationId} className="flex items-center justify-between gap-3 px-6 py-3"><div><p className="font-bold">{person.name}</p><p className="text-sm text-slate-500">{person.email}</p></div><Badge className={person.status === "CANCELLED" ? "bg-red-50 text-red-700" : ""}>{person.status === "CONFIRMED" ? "Confirmado" : "Cancelado"}</Badge></div>)}</div></div></section>
+  </main>;
+}

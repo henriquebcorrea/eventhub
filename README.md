@@ -201,4 +201,3 @@ Teste no endereço público: cadastro de organizador, publicação de evento com
 ## Próximas evoluções
 
 Pagamentos, lista de espera, recuperação de senha, painel administrativo, múltiplos tipos de ingresso, Redis e RabbitMQ estão fora do MVP. Eles só devem entrar quando houver uma necessidade mensurável, preservando a simplicidade operacional do monólito modular.
-

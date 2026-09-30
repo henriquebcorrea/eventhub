@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: eventhub-api
+    runtime: docker
+    plan: free
+    region: virginia
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: JAVA_TOOL_OPTIONS
+        value: -Xms64m -Xmx256m -XX:+UseSerialGC -XX:ActiveProcessorCount=1
+      - key: DB_POOL_SIZE
+        value: 2
+      - key: DEMO_SEED
+        value: false
+      - key: JWT_ALLOW_EPHEMERAL
+        value: false
+      - key: JWT_ISSUER
+        value: eventhub-api
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: JWT_PRIVATE_KEY
+        sync: false
+      - key: JWT_PUBLIC_KEY
+        sync: false
+      - key: QR_SIGNING_SECRET
+        generateValue: true
