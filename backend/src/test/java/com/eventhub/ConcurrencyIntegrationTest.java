@@ -55,6 +55,14 @@ class ConcurrencyIntegrationTest {
         } finally { pool.shutdownNow(); }
     }
 
+    @Test void catalogSearchHandlesAbsentAndPresentFilters() {
+        assertThat(events.search(null, null, null, 0, 50).totalElements()).isGreaterThanOrEqualTo(1);
+        var matching = events.search("Evento " + suffix, "sÃO pAULO", null, 0, 50);
+        assertThat(matching.totalElements()).isEqualTo(1);
+        assertThat(matching.content().getFirst().id()).isEqualTo(eventId);
+        assertThat(events.search("Evento " + suffix, null, Instant.now().plusSeconds(172800), 0, 50).totalElements()).isZero();
+    }
+
     @Test void onlyOneOfTwoSimultaneousCheckInsIsAccepted() throws Exception {
         var participant = users.create("Participante", "checkin-" + suffix + "@test.dev", "hash", false).getId();
         var ticket = registrations.register(eventId, participant).ticket();
@@ -81,3 +89,4 @@ class ConcurrencyIntegrationTest {
 
     private boolean fail(ApiException exception) { throw exception; }
 }
+
