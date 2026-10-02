@@ -139,6 +139,7 @@ public class RegistrationService {
             var event = events.require(eventId);
             if (event.getStatus() != EventStatus.PUBLISHED || !event.getStartsAt().isAfter(Instant.now())) return;
             var type = events.lockTicketType(eventId, typeId);
+            entityManager.refresh(type);
             var names = request.getAttendeeNames();
             if (type.getAvailable() < names.size()) return;
             request.promote();

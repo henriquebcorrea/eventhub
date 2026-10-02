@@ -119,6 +119,22 @@ class ConcurrencyIntegrationTest {
         assertThat(tickets.mine(holder).stream().filter(t -> t.eventId().equals(event.id())).count()).isEqualTo(2);
     }
 
+    @Test void capacityIncreaseStopsAfterPromotingWholeGroupsThatFit() {
+        var event = createEvent(4, null);
+        var holder = users.create("Titular", "batch-holder-" + suffix + "@test.dev", "hash", false).getId();
+        registrations.register(event.id(), holder, event.ticketTypeId(), List.of("A", "B", "C", "D"));
+        var queued = java.util.stream.IntStream.range(0, 3).mapToObj(index -> {
+            var participant = users.create("Fila " + index, "batch-" + index + "-" + suffix + "@test.dev", "hash", false).getId();
+            registrations.joinWaitlist(event.id(), participant, event.ticketTypeId(), List.of("Pessoa A", "Pessoa B"));
+            return participant;
+        }).toList();
+        events.update(event.id(), organizerId, new EventService.EventData(event.title(), event.description(), event.venue(), event.address(), event.city(), event.state(), event.timezone(), event.startsAt(), event.endsAt(), 8, event.coverUrl(), event.coverPublicId()));
+        assertThat(tickets.mine(queued.get(0))).hasSize(2);
+        assertThat(tickets.mine(queued.get(1))).hasSize(2);
+        assertThat(tickets.mine(queued.get(2))).isEmpty();
+        assertThat(registrations.myWaitlist(queued.get(2))).hasSize(1);
+    }
+
     private EventService.EventView createEvent(int capacity, List<EventService.TicketTypeData> types) {
         var start = Instant.now().plusSeconds(172800);
         var created = events.create(organizerId, new EventService.EventData("Teste " + UUID.randomUUID(), "Descrição suficientemente longa para testar ingressos em grupo e lista de espera.", "Arena", "Rua de Teste, 1", "São Paulo", "SP", "America/Sao_Paulo", start, start.plusSeconds(7200), capacity, null, null, types));
