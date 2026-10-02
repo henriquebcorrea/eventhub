@@ -11,12 +11,14 @@ test("@full jornada pela interface: tipos, grupo, fila, promoção, QR e check-i
   const waiting = await waitingContext.newPage();
   try {
     await page.goto("/cadastro");
+    await page.waitForLoadState("networkidle");
     await page.getByLabel("Nome completo").fill("Organizador E2E");
     await page.getByLabel("E-mail").fill(`org-${suffix}@eventhub.test`);
     await page.getByLabel("Senha").fill(password);
     await page.getByLabel("Quero organizar eventos").check();
-    await page.getByRole("button", { name: "Criar minha conta" }).click();
-    await expect(page).toHaveURL(/\/organizador\/eventos/);
+    const [organizerSignup] = await Promise.all([page.waitForResponse((response) => response.url().endsWith("/api/auth/register")), page.getByRole("button", { name: "Criar minha conta" }).click()]);
+    expect(organizerSignup.status(), await organizerSignup.text()).toBe(201);
+    await expect(page).toHaveURL(/\/organizador\/eventos/, { timeout: 15000 });
 
     await page.goto("/organizador/eventos/novo");
     await page.getByLabel("Nome do evento").fill(title);
@@ -46,11 +48,13 @@ test("@full jornada pela interface: tipos, grupo, fila, promoção, QR e check-i
     const slug = eventList.find((item: { id: string }) => item.id === eventId).slug as string;
 
     await participant.goto("/cadastro");
+    await participant.waitForLoadState("networkidle");
     await participant.getByLabel("Nome completo").fill("Participante E2E");
     await participant.getByLabel("E-mail").fill(`participant-${suffix}@eventhub.test`);
     await participant.getByLabel("Senha").fill(password);
-    await participant.getByRole("button", { name: "Criar minha conta" }).click();
-    await expect(participant).toHaveURL(/\/meus-ingressos/);
+    const [participantSignup] = await Promise.all([participant.waitForResponse((response) => response.url().endsWith("/api/auth/register")), participant.getByRole("button", { name: "Criar minha conta" }).click()]);
+    expect(participantSignup.status(), await participantSignup.text()).toBe(201);
+    await expect(participant).toHaveURL(/\/meus-ingressos/, { timeout: 15000 });
     await participant.goto(`/eventos/${slug}`);
     await participant.getByLabel("Tipo de ingresso").selectOption({ label: "Pista · 2 vagas" });
     await participant.getByLabel("Quantidade").selectOption("2");
@@ -72,11 +76,13 @@ test("@full jornada pela interface: tipos, grupo, fila, promoção, QR e check-i
     const qrPayload = tickets.find((ticket: { attendeeName: string }) => ticket.attendeeName === "Pessoa Um").qrPayload as string;
 
     await waiting.goto("/cadastro");
+    await waiting.waitForLoadState("networkidle");
     await waiting.getByLabel("Nome completo").fill("Pessoa em Espera");
     await waiting.getByLabel("E-mail").fill(`waiting-${suffix}@eventhub.test`);
     await waiting.getByLabel("Senha").fill(password);
-    await waiting.getByRole("button", { name: "Criar minha conta" }).click();
-    await expect(waiting).toHaveURL(/\/meus-ingressos/);
+    const [waitingSignup] = await Promise.all([waiting.waitForResponse((response) => response.url().endsWith("/api/auth/register")), waiting.getByRole("button", { name: "Criar minha conta" }).click()]);
+    expect(waitingSignup.status(), await waitingSignup.text()).toBe(201);
+    await expect(waiting).toHaveURL(/\/meus-ingressos/, { timeout: 15000 });
     await waiting.goto(`/eventos/${slug}`);
     await waiting.getByLabel("Tipo de ingresso").selectOption({ label: "Pista · 0 vagas" });
     await waiting.getByLabel("Nome no ingresso 1").fill("Pessoa Fila");
