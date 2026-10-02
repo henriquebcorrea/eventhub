@@ -68,7 +68,8 @@ public class EventController {
                         @NotNull Instant endsAt,
                         @Min(1) @Max(100000) int capacity,
                         @Size(max = 600) String coverUrl,
-                        @Size(max = 255) String coverPublicId) {
-        EventService.EventData toData() { return new EventService.EventData(title, description, venue, address, city, state, timezone, startsAt, endsAt, capacity, coverUrl, coverPublicId); }
+                        @Size(max = 255) String coverPublicId,
+                        List<EventService.TicketTypeData> ticketTypes) {
+        EventService.EventData toData() { return new EventService.EventData(title, description, venue, address, city, state, timezone, startsAt, endsAt, capacity, coverUrl, coverPublicId, ticketTypes); }
     }
 }

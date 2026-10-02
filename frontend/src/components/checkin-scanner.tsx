@@ -12,7 +12,7 @@ export function CheckInScanner({ eventId }: { eventId: string }) {
   async function validate(token: string) {
     if (!token || lock.current) return; lock.current = true; setResult(null);
     const response = await fetch(`/api/backend/organizer/events/${eventId}/check-ins`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) });
-    if (response.ok) { const data = await response.json(); setResult({ kind: "success", title: "Entrada autorizada", detail: `${data.publicCode} · check-in registrado agora` }); }
+    if (response.ok) { const data = await response.json(); setResult({ kind: "success", title: "Entrada autorizada", detail: `${data.attendeeName ?? "Participante"} · ${data.ticketTypeName ?? "Ingresso geral"} · ${data.publicCode}` }); }
     else { const problem = await response.json() as Problem; setResult({ kind: "error", title: problem.code === "ALREADY_CHECKED_IN" ? "Ingresso já utilizado" : "Ingresso inválido", detail: problem.detail ?? "Não foi possível validar este ingresso." }); }
     window.setTimeout(() => { lock.current = false; }, 1800);
   }

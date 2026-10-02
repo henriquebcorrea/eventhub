@@ -3,6 +3,8 @@ package com.eventhub;
 import com.eventhub.checkin.CheckInService;
 import com.eventhub.events.EventService;
 import com.eventhub.registrations.RegistrationService;
+import com.eventhub.tickets.TicketService;
+import com.eventhub.tickets.TicketStatus;
 import com.eventhub.shared.ApiException;
 import com.eventhub.users.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +19,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.List;
 import java.util.concurrent.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,7 +31,7 @@ class ConcurrencyIntegrationTest {
     @DynamicPropertySource static void database(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", postgres::getJdbcUrl); registry.add("spring.datasource.username", postgres::getUsername); registry.add("spring.datasource.password", postgres::getPassword);
     }
-    @Autowired UserService users; @Autowired EventService events; @Autowired RegistrationService registrations; @Autowired CheckInService checkIns;
+    @Autowired UserService users; @Autowired EventService events; @Autowired RegistrationService registrations; @Autowired CheckInService checkIns; @Autowired TicketService tickets;
     UUID organizerId, eventId; String suffix;
     @BeforeEach void setup() {
         suffix = UUID.randomUUID().toString().substring(0, 8);
@@ -61,6 +64,65 @@ class ConcurrencyIntegrationTest {
         assertThat(matching.totalElements()).isEqualTo(1);
         assertThat(matching.content().get(0).id()).isEqualTo(eventId);
         assertThat(events.search("Evento " + suffix, null, Instant.now().plusSeconds(172800), 0, 50).totalElements()).isZero();
+    }
+
+    @Test void oneAccountCannotExceedFourTicketsUnderConcurrency() throws Exception {
+        var event = createEvent(10, null);
+        var participant = users.create("Grupo", "group-" + suffix + "@test.dev", "hash", false).getId();
+        var typeId = event.ticketTypeId();
+        var barrier = new CyclicBarrier(5);
+        var pool = Executors.newFixedThreadPool(5);
+        try {
+            var attempts = java.util.stream.IntStream.range(0, 5).mapToObj(index -> pool.submit(() -> {
+                try { barrier.await(5, TimeUnit.SECONDS); registrations.register(event.id(), participant, typeId, List.of("Pessoa " + index)); return true; }
+                catch (ApiException expected) { return false; }
+            })).toList();
+            assertThat(attempts.stream().filter(f -> {
+                try { return f.get(30, TimeUnit.SECONDS); } catch (Exception e) { throw new RuntimeException(e); }
+            }).count()).isEqualTo(4);
+            assertThat(tickets.mine(participant).stream().filter(t -> t.eventId().equals(event.id()) && t.status() == TicketStatus.ACTIVE).count()).isEqualTo(4);
+        } finally { pool.shutdownNow(); }
+    }
+
+    @Test void fifoBlocksSmallerGroupsUntilFrontGroupFits() {
+        var event = createEvent(4, null);
+        var holder = users.create("Titular", "holder-" + suffix + "@test.dev", "hash", false).getId();
+        var group = users.create("Grupo", "fifo-group-" + suffix + "@test.dev", "hash", false).getId();
+        var small = users.create("Individual", "fifo-small-" + suffix + "@test.dev", "hash", false).getId();
+        var booked = registrations.register(event.id(), holder, event.ticketTypeId(), List.of("A", "B", "C", "D"));
+        var first = registrations.joinWaitlist(event.id(), group, event.ticketTypeId(), List.of("E", "F", "G"));
+        var second = registrations.joinWaitlist(event.id(), small, event.ticketTypeId(), List.of("H"));
+        registrations.cancelTicket(booked.tickets().get(0).id(), holder);
+        assertThat(registrations.myWaitlist(group)).extracting(RegistrationService.WaitlistView::id).contains(first.id());
+        assertThat(registrations.myWaitlist(small)).extracting(RegistrationService.WaitlistView::id).contains(second.id());
+        registrations.cancelTicket(booked.tickets().get(1).id(), holder);
+        registrations.cancelTicket(booked.tickets().get(2).id(), holder);
+        assertThat(registrations.myWaitlist(group)).isEmpty();
+        assertThat(tickets.mine(group).stream().filter(t -> t.eventId().equals(event.id()) && t.status() == TicketStatus.ACTIVE).count()).isEqualTo(3);
+        assertThat(registrations.myWaitlist(small)).hasSize(1);
+        registrations.cancelTicket(booked.tickets().get(3).id(), holder);
+        assertThat(registrations.myWaitlist(small)).isEmpty();
+    }
+
+    @Test void capacityIncreasePromotesAndDifferentTypesAreIndependent() {
+        var event = createEvent(1, List.of(new EventService.TicketTypeData(null, "Pista", 1), new EventService.TicketTypeData(null, "Arquibancada", 2)));
+        var pista = event.ticketTypes().stream().filter(t -> t.name().equals("Pista")).findFirst().orElseThrow();
+        var arquibancada = event.ticketTypes().stream().filter(t -> t.name().equals("Arquibancada")).findFirst().orElseThrow();
+        var holder = users.create("Titular", "cap-holder-" + suffix + "@test.dev", "hash", false).getId();
+        var waiting = users.create("Espera", "cap-wait-" + suffix + "@test.dev", "hash", false).getId();
+        registrations.register(event.id(), holder, pista.id(), List.of("Titular"));
+        registrations.register(event.id(), holder, arquibancada.id(), List.of("Acompanhante"));
+        registrations.joinWaitlist(event.id(), waiting, pista.id(), List.of("Espera"));
+        events.update(event.id(), organizerId, new EventService.EventData(event.title(), event.description(), event.venue(), event.address(), event.city(), event.state(), event.timezone(), event.startsAt(), event.endsAt(), 4, event.coverUrl(), event.coverPublicId(), List.of(new EventService.TicketTypeData(pista.id(), "Pista", 2), new EventService.TicketTypeData(arquibancada.id(), "Arquibancada", 2))));
+        assertThat(registrations.myWaitlist(waiting)).isEmpty();
+        assertThat(tickets.mine(waiting)).hasSize(1);
+        assertThat(tickets.mine(holder).stream().filter(t -> t.eventId().equals(event.id())).count()).isEqualTo(2);
+    }
+
+    private EventService.EventView createEvent(int capacity, List<EventService.TicketTypeData> types) {
+        var start = Instant.now().plusSeconds(172800);
+        var created = events.create(organizerId, new EventService.EventData("Teste " + UUID.randomUUID(), "Descrição suficientemente longa para testar ingressos em grupo e lista de espera.", "Arena", "Rua de Teste, 1", "São Paulo", "SP", "America/Sao_Paulo", start, start.plusSeconds(7200), capacity, null, null, types));
+        return events.publish(created.id(), organizerId);
     }
 
     @Test void onlyOneOfTwoSimultaneousCheckInsIsAccepted() throws Exception {
