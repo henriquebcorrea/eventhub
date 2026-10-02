@@ -9,5 +9,5 @@ export function LogoutButton() {
     router.push("/");
     router.refresh();
   }
-  return <button type="button" onClick={logout} className="focus-ring inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-slate-600 hover:bg-slate-100"><LogOut className="size-4" /> Sair</button>;
+  return <button type="button" onClick={logout} className="focus-ring inline-flex min-h-11 items-center gap-2 px-3 text-sm font-bold text-white/80 hover:bg-white/10 hover:text-white"><LogOut className="size-4" /> Sair</button>;
 }

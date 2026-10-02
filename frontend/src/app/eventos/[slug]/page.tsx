@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarDays, Clock3, MapPin, ShieldCheck, Ticket } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, CalendarDays, Clock3, MapPin, ShieldCheck, Ticket } from "lucide-react";
 import { RegisterButton } from "@/components/register-button";
-import { Badge } from "@/components/ui/badge";
 import { getEvent } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 
@@ -16,29 +16,11 @@ export default async function EventDetail({ params }: { params: Promise<{ slug: 
   if (!event) notFound();
   const types = event.ticketTypes?.length ? event.ticketTypes : [{ id: event.ticketTypeId, name: "Ingresso geral", capacity: event.capacity, confirmedCount: event.confirmedCount, available: event.available, waitingCount: 0 }];
   const isDemo = event.description.toLowerCase().includes("evento fictício para demonstração");
-  return (
-    <main>
-      <section className="bg-[var(--navy)] py-8 text-white sm:py-12">
-        <div className="container-shell grid gap-8 lg:grid-cols-[1.15fr_.85fr] lg:items-center">
-          <div className="event-image relative aspect-[16/9] overflow-hidden rounded-3xl shadow-2xl">
-            {event.coverUrl && <img src={event.coverUrl} alt="" className="h-full w-full object-cover" />}
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/55 to-transparent" />
-          </div>
-          <div>
-            <Badge className="bg-teal-300 text-teal-950">Entrada gratuita</Badge>{isDemo && <p className="mt-4 rounded-xl border border-amber-300 bg-amber-100 p-3 text-sm font-bold text-amber-950">Evento fictício para demonstração. O ingresso não dá acesso a um evento real.</p>}
-            <h1 className="mt-4 text-balance text-4xl font-black leading-tight tracking-[-.05em] sm:text-5xl">{event.title}</h1>
-            <div className="mt-6 grid gap-4 text-slate-200">
-              <p className="flex items-start gap-3"><CalendarDays className="mt-0.5 size-5 text-[var(--primary)]" /><span><strong className="block text-white">Data e horário</strong>{formatDate(event.startsAt)}</span></p>
-              <p className="flex items-start gap-3"><MapPin className="mt-0.5 size-5 text-[var(--primary)]" /><span><strong className="block text-white">Local</strong>{event.venue}<br />{event.address} · {event.city}, {event.state}</span></p>
-            </div>
-          </div>
-        </div>
-      </section>
-      <div className="container-shell grid gap-8 py-10 lg:grid-cols-[1fr_370px] lg:items-start">
-        <article className="surface p-6 sm:p-8"><p className="text-sm font-bold uppercase tracking-[.14em] text-[var(--primary)]">Sobre o evento</p><h2 className="mt-2 text-2xl font-black tracking-[-.03em]">O que você vai encontrar</h2><p className="mt-5 whitespace-pre-line text-lg leading-8 text-slate-600">{event.description}</p><div className="mt-8 grid gap-4 border-t border-slate-200 pt-6 sm:grid-cols-2"><div className="flex gap-3"><Clock3 className="size-5 text-[var(--accent)]" /><div><strong className="block">Entrada ágil</strong><span className="text-sm text-slate-500">Apresente o QR Code no celular.</span></div></div><div className="flex gap-3"><ShieldCheck className="size-5 text-[var(--accent)]" /><div><strong className="block">Ingresso seguro</strong><span className="text-sm text-slate-500">Validação única na entrada.</span></div></div></div></article>
-        <aside className="surface sticky top-24 p-6 shadow-soft"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-slate-500">Escolha seus ingressos</span><span className="text-lg font-black text-teal-700">Gratuitos</span></div><div className="my-5 h-px bg-slate-200" /><div className="mb-4 grid gap-2">{types.map((type) => <div key={type.id} className="flex justify-between gap-2 text-sm"><span className="flex items-center gap-2 font-semibold"><Ticket className="size-4 text-[var(--primary)]" />{type.name}</span><span className="text-slate-500">{type.available} de {type.capacity}</span></div>)}</div><RegisterButton eventId={event.id} types={types} /><p className="mt-4 text-center text-xs text-slate-500">A confirmação e os QR Codes aparecem imediatamente na sua conta. A fila não garante ingresso até a promoção.</p></aside>
-      </div>
-    </main>
-  );
+  return <main className="pb-20 lg:pb-0">
+    <section className="relative overflow-hidden bg-[var(--navy)] text-[var(--paper)]"><div aria-hidden="true" className="poster-grid absolute inset-0 opacity-20" /><div className="container-shell relative py-7 sm:py-10"><Link href="/#eventos" className="focus-ring inline-flex min-h-11 items-center gap-2 text-sm font-bold text-white/65 hover:text-[var(--accent)]"><ArrowLeft className="size-4" /> Voltar à agenda</Link><div className="mt-5 grid gap-7 lg:grid-cols-[1.05fr_.95fr] lg:items-end lg:gap-12"><div className="event-image relative aspect-[4/3] overflow-hidden border-[6px] border-[var(--paper)] sm:aspect-[16/10]">{event.coverUrl && <img src={event.coverUrl} alt="" className="h-full w-full object-cover" />}<div className="absolute inset-0 bg-gradient-to-t from-[var(--navy)]/65 to-transparent" /><span className="poster-label absolute bottom-4 left-4 bg-[var(--accent)] text-[var(--navy)]">Ao vivo / Entrada gratuita</span></div><div className="pb-1"><p className="eyebrow text-[var(--accent)]">EventHub / Em cartaz</p>{isDemo && <p className="mt-5 border-l-4 border-[var(--accent)] bg-white/10 px-4 py-3 text-sm font-bold text-white">Evento fictício para demonstração. O ingresso não dá acesso a um evento real.</p>}<h1 className="display-tight mt-5 text-[clamp(2.8rem,5vw,5.75rem)] font-extrabold">{event.title}<span className="text-[var(--primary)]">.</span></h1><div className="mt-7 grid gap-4 border-t border-white/25 pt-6 sm:grid-cols-2"><p className="flex items-start gap-3"><CalendarDays className="mt-1 size-5 shrink-0 text-[var(--accent)]" /><span><strong className="eyebrow block text-[var(--accent)]">Quando</strong><span className="mt-1 block text-sm font-semibold text-white/85">{formatDate(event.startsAt)}</span></span></p><p className="flex items-start gap-3"><MapPin className="mt-1 size-5 shrink-0 text-[var(--accent)]" /><span><strong className="eyebrow block text-[var(--accent)]">Onde</strong><span className="mt-1 block text-sm font-semibold text-white/85">{event.venue}<br />{event.city}, {event.state}</span></span></p></div></div></div></div></section>
+    <div className="container-shell grid gap-8 py-10 lg:grid-cols-[minmax(0,1fr)_370px] lg:items-start lg:gap-12 lg:py-16"><article className="min-w-0"><p className="eyebrow text-[var(--primary)]">Sobre a experiência</p><h2 className="display-tight mt-3 max-w-xl text-4xl font-extrabold sm:text-5xl">Tudo começa com estar lá.</h2><p className="mt-8 whitespace-pre-line text-lg leading-8 text-slate-700">{event.description}</p><div className="mt-10 grid gap-6 border-t border-[var(--navy)] pt-7 sm:grid-cols-2"><div className="flex gap-3"><Clock3 className="size-6 shrink-0 text-[var(--primary)]" /><div><strong className="block font-display text-xl font-extrabold">Entrada ágil</strong><span className="text-sm text-slate-600">Apresente o QR Code no celular.</span></div></div><div className="flex gap-3"><ShieldCheck className="size-6 shrink-0 text-[var(--primary)]" /><div><strong className="block font-display text-xl font-extrabold">Ingresso protegido</strong><span className="text-sm text-slate-600">Cada ingresso permite um check-in.</span></div></div></div><div className="mt-10 border-t border-[var(--border)] pt-6 text-sm text-slate-600"><p className="eyebrow mb-2 text-[var(--primary)]">Local do encontro</p><p className="font-bold text-[var(--navy)]">{event.venue}</p><p>{event.address} · {event.city}, {event.state}</p></div></article>
+      <aside id="reservar" className="scroll-mt-6 border border-[var(--navy)] bg-[var(--navy)] p-5 text-white shadow-[12px_12px_0_#c7f36b] sm:p-7 lg:sticky lg:top-6"><div className="flex items-start justify-between gap-3"><div><p className="eyebrow text-[var(--accent)]">Seu lugar está aqui</p><h2 className="mt-2 font-display text-2xl font-extrabold">Escolha seus ingressos</h2></div><ArrowUpRight className="size-6 text-[var(--accent)]" /></div><div className="mt-6 grid gap-3 border-y border-white/20 py-5">{types.map((type) => <div key={type.id} className="flex justify-between gap-3 text-sm"><span className="flex items-center gap-2 font-bold"><Ticket className="size-4 text-[var(--accent)]" />{type.name}</span><span className="text-white/60">{type.available} de {type.capacity}</span></div>)}</div><div className="mt-6"><RegisterButton eventId={event.id} types={types} /></div><p className="mt-5 border-t border-white/20 pt-4 text-xs leading-relaxed text-white/55">A confirmação e os QR Codes aparecem na sua conta. A lista de espera não garante ingresso até a promoção.</p></aside>
+    </div>
+    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/20 bg-[var(--navy)] p-3 text-white shadow-2xl lg:hidden"><a href="#reservar" className="focus-ring flex min-h-12 items-center justify-between bg-[var(--accent)] px-5 font-extrabold text-[var(--navy)]">Escolher ingressos <ArrowUpRight className="size-5" /></a></div>
+  </main>;
 }
-
