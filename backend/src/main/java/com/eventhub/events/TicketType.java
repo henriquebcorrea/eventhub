@@ -15,11 +15,13 @@ public class TicketType {
     @Column(name = "price_cents", nullable = false) private int priceCents;
 
     protected TicketType() {}
-    TicketType(UUID eventId, int capacity) {
-        this.id = UUID.randomUUID(); this.eventId = eventId; this.name = "Ingresso geral";
+    TicketType(UUID eventId, String name, int capacity) {
+        this.id = UUID.randomUUID(); this.eventId = eventId; this.name = name;
         this.capacity = capacity; this.confirmedCount = 0; this.priceCents = 0;
     }
+    TicketType(UUID eventId, int capacity) { this(eventId, "Ingresso geral", capacity); }
     void changeCapacity(int capacity) { this.capacity = capacity; }
+    void rename(String name) { this.name = name; }
     public UUID getId() { return id; }
     public UUID getEventId() { return eventId; }
     public String getName() { return name; }
