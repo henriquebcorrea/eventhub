@@ -208,7 +208,7 @@ Depois de cada push em `main`, confira CI e os deployments da Render e da Vercel
 
 Teste no endereço público: cadastro de organizador, publicação de evento com capa, cadastro de participante, inscrição, QR, primeiro check-in, rejeição do segundo check-in e dashboard. Confirme também HTTPS, layout mobile, cookies `HttpOnly`/`Secure` e ausência de segredos no Git. Se o processo Java não couber nos 512 MB gratuitos, interrompa o deploy e avalie outro plano somente com autorização explícita do proprietário.
 
-Para montar a vitrine fictícia após o deploy, execute `node scripts/publish-demo.mjs` uma única vez. O script cria uma conta técnica com senha aleatória, envia as seis capas originais ao Cloudinary e publica os eventos com dois tipos de ingresso gratuitos cada. Ele imprime a senha apenas no terminal: guarde-a em um gerenciador de senhas e nunca a inclua no repositório. Se a execução parar no meio, confira os eventos já publicados antes de repetir, pois uma nova execução criará outra conta e outros eventos.
+Para montar a vitrine fictícia após o deploy, execute `node scripts/publish-demo.mjs` uma única vez. O script cria uma conta técnica com senha aleatória, envia as seis capas originais ao Cloudinary e publica os eventos com dois tipos de ingresso gratuitos cada. Ele imprime a senha apenas no terminal: guarde-a em um gerenciador de senhas e nunca a inclua no repositório. Se a execução parar no meio, confira os eventos já publicados e retome com `EVENTHUB_DEMO_EMAIL` e `EVENTHUB_DEMO_PASSWORD` no ambiente local; o script reutiliza a conta e ignora os eventos já criados.
 
 ## Próximas evoluções
 

@@ -12,9 +12,9 @@ const samples = [
   { title: "Cinema ao Ar Livre", city: "Recife", state: "PE", image: "cinema-ao-ar-livre.png", startsAt: "2027-04-10T21:00:00Z", endsAt: "2027-04-11T01:00:00Z", types: [["Cadeiras", 80], ["Almofadas", 40]], theme: "cinema sob as estrelas" },
 ];
 
-async function request(path, token, body) {
+async function request(path, token, body, method = "POST") {
   const response = await fetch(`${api}${path}`, {
-    method: "POST",
+    method,
     headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
     signal: AbortSignal.timeout(300_000),
@@ -40,12 +40,26 @@ async function cover(file, token) {
   return { coverUrl: image.secure_url, coverPublicId: image.public_id };
 }
 
-const email = `eventhub-demo-${Date.now()}-${randomBytes(3).toString("hex")}@example.com`;
-const password = randomBytes(24).toString("base64url");
-const session = await request("/auth/register", null, { name: "EventHub Portfólio", email, password, organizer: true });
-console.log(`CREDENTIALS ${JSON.stringify({ email, password })}`);
+const resumeEmail = process.env.EVENTHUB_DEMO_EMAIL;
+const resumePassword = process.env.EVENTHUB_DEMO_PASSWORD;
+if (Boolean(resumeEmail) !== Boolean(resumePassword)) throw new Error("Para retomar, informe EVENTHUB_DEMO_EMAIL e EVENTHUB_DEMO_PASSWORD juntos.");
+const email = resumeEmail ?? `eventhub-demo-${Date.now()}-${randomBytes(3).toString("hex")}@example.com`;
+const password = resumePassword ?? randomBytes(24).toString("base64url");
+const session = resumeEmail
+  ? await request("/auth/login", null, { email, password })
+  : await request("/auth/register", null, { name: "EventHub Portfólio", email, password, organizer: true });
+if (!resumeEmail) console.log(`CREDENTIALS ${JSON.stringify({ email, password })}`);
+const existing = await request("/events/organizer/mine", session.accessToken, undefined, "GET");
 const links = [];
 for (const sample of samples) {
+  const alreadyCreated = existing.find((event) => event.title === sample.title);
+  if (alreadyCreated) {
+    if (alreadyCreated.status === "DRAFT") await request(`/events/${alreadyCreated.id}/publish`, session.accessToken);
+    else if (alreadyCreated.status !== "PUBLISHED") throw new Error(`${sample.title}: status inesperado ${alreadyCreated.status}`);
+    links.push(`${web}/eventos/${alreadyCreated.slug}`);
+    console.log(`EXISTING ${sample.title} ${links.at(-1)}`);
+    continue;
+  }
   const image = await cover(sample.image, session.accessToken);
   const event = await request("/events", session.accessToken, {
     title: sample.title,
