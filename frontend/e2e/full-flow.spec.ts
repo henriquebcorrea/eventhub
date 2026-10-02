@@ -93,7 +93,11 @@ test("@full jornada pela interface: tipos, grupo, fila, promoção, QR e check-i
 
     await participant.goto("/meus-ingressos");
     await participant.getByText("Pessoa Dois").click();
+    const cancelledTicketId = participant.url().split("/").pop()!;
+    participant.once("dialog", (dialog) => dialog.accept());
+    const cancellation = participant.waitForResponse((response) => response.url().endsWith(`/api/backend/tickets/${cancelledTicketId}`) && response.request().method() === "DELETE");
     await participant.getByRole("button", { name: "Cancelar este ingresso" }).click();
+    expect((await cancellation).status()).toBe(204);
     await expect(participant.getByText("Ingresso cancelado")).toBeVisible();
     await waiting.reload();
     await expect(waiting.getByText("Pessoa Fila")).toBeVisible();
