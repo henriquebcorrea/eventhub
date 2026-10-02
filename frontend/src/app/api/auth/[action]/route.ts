@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sameOrigin } from "@/lib/same-origin";
 
 const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
 const secure = process.env.COOKIE_SECURE
   ? process.env.COOKIE_SECURE === "true"
   : process.env.NODE_ENV === "production";
-
-function sameOrigin(request: NextRequest) {
-  const origin = request.headers.get("origin");
-  return !origin || origin === request.nextUrl.origin;
-}
 
 function setSession(response: NextResponse, data: { accessToken: string; refreshToken: string; expiresIn: number }) {
   response.cookies.set("eh_access", data.accessToken, { httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: data.expiresIn });
