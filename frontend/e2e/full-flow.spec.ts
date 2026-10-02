@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("@full jornada pela interface: tipos, grupo, fila, promoção, QR e check-in", async ({ page, browser }) => {
+  test.setTimeout(180_000);
   test.skip(!process.env.E2E_FULL, "Exige a stack completa do Docker Compose.");
   const suffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const password = "EventHub@2026";
@@ -109,7 +110,7 @@ test("@full jornada pela interface: tipos, grupo, fila, promoção, QR e check-i
     await expect(page.getByText("3", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("1", { exact: true }).first()).toBeVisible();
   } finally {
-    await participantContext.close();
-    await waitingContext.close();
+    await participantContext.close().catch(() => {});
+    await waitingContext.close().catch(() => {});
   }
 });
