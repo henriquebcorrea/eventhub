@@ -12,6 +12,8 @@ import java.util.UUID;
 interface CheckInRepository extends JpaRepository<CheckIn, UUID> {
     Optional<CheckIn> findByTicketId(UUID ticketId);
     long countByEventId(UUID eventId);
+    @Query(value = "SELECT COUNT(*) FROM check_ins c JOIN tickets t ON t.id = c.ticket_id WHERE t.ticket_type_id = :typeId", nativeQuery = true)
+    long countByTicketType(@Param("typeId") UUID typeId);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = "INSERT INTO check_ins(id, ticket_id, event_id, scanned_by, checked_in_at) VALUES (:id, :ticketId, :eventId, :scannedBy, :checkedAt) ON CONFLICT (ticket_id) DO NOTHING", nativeQuery = true)

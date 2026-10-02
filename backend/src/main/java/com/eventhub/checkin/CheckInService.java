@@ -35,13 +35,16 @@ public class CheckInService {
                     .withZone(ZoneId.of(event.getTimezone())).format(previous.getCheckedInAt());
             throw new ApiException(HttpStatus.CONFLICT, "ALREADY_CHECKED_IN", "Ingresso já utilizado — check-in realizado em " + localTime + ".");
         }
-        return new Result("CHECKED_IN", "Ingresso válido — entrada autorizada", ticket.getPublicCode(), now);
+        var typeName = events.ticketTypes(eventId).stream().filter(t -> t.getId().equals(ticket.getTicketTypeId())).findFirst().map(com.eventhub.events.TicketType::getName).orElse("Ingresso geral");
+        return new Result("CHECKED_IN", "Ingresso válido — entrada autorizada", ticket.getPublicCode(), now, ticket.getAttendeeName(), typeName);
     }
 
     @Transactional(readOnly = true)
     public long countForEvent(UUID eventId) { return checkIns.countByEventId(eventId); }
+    @Transactional(readOnly = true)
+    public long countForType(UUID typeId) { return checkIns.countByTicketType(typeId); }
 
-    public record Result(String status, String message, String publicCode, Instant checkedInAt) {}
+    public record Result(String status, String message, String publicCode, Instant checkedInAt, String attendeeName, String ticketTypeName) {}
 }
 
 
