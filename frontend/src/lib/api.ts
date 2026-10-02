@@ -50,7 +50,7 @@ export async function getEvents(query = "", city = "", from = "", page = 0): Pro
 
 export async function getEvent(slug: string): Promise<EventView | null> {
   try {
-    const response = await fetch(`${serverApi}/events/${encodeURIComponent(slug)}`, { next: { revalidate: 30 }, signal: AbortSignal.timeout(apiTimeoutMs) });
+    const response = await fetch(`${serverApi}/events/${encodeURIComponent(slug)}`, { cache: "no-store", signal: AbortSignal.timeout(apiTimeoutMs) });
     if (response.status === 404) return null;
     if (!response.ok) throw new Error("API indispon�vel");
     return response.json();

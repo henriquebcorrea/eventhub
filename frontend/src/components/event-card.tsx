@@ -13,6 +13,7 @@ export function EventCard({ event }: { event: EventView }) {
           {event.coverUrl && <img src={event.coverUrl} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]" />}
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/65 via-transparent to-transparent" />
           <Badge className="absolute left-4 top-4 bg-white/95 text-slate-800">Entrada gratuita</Badge>
+          {event.description.toLowerCase().includes("evento fictício para demonstração") && <Badge className="absolute right-4 top-4 bg-amber-100 text-amber-950">Evento fictício</Badge>}
           <time className="absolute bottom-4 left-4 rounded-xl bg-white px-3 py-2 text-sm font-black text-slate-900" dateTime={event.startsAt}>{formatShortDate(event.startsAt)}</time>
         </div>
         <div className="p-5">

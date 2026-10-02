@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sameOrigin } from "@/lib/same-origin";
 
 const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
 const allowedRoots = new Set(["events", "tickets", "registrations", "organizer", "media", "users"]);
@@ -16,8 +17,7 @@ async function refreshSession(request: NextRequest) {
 async function handler(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const path = (await context.params).path;
   if (!path.length || !allowedRoots.has(path[0])) return NextResponse.json({ detail: "Rota não permitida." }, { status: 404 });
-  const origin = request.headers.get("origin");
-  if (!["GET", "HEAD"].includes(request.method) && origin && origin !== request.nextUrl.origin) return NextResponse.json({ detail: "Origem inválida." }, { status: 403 });
+  if (!["GET", "HEAD"].includes(request.method) && !sameOrigin(request)) return NextResponse.json({ detail: "Origem inválida." }, { status: 403 });
   const url = `${API_URL}/${path.map(encodeURIComponent).join("/")}${request.nextUrl.search}`;
   const rawBody = ["GET", "HEAD"].includes(request.method) ? undefined : await request.arrayBuffer();
   let token = request.cookies.get("eh_access")?.value;

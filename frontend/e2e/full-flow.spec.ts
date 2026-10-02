@@ -1,102 +1,121 @@
 import { expect, test } from "@playwright/test";
 
-interface EventResult {
-  id: string;
-  title: string;
-  status: "DRAFT" | "PUBLISHED";
-}
-
-interface RegistrationResult {
-  ticket: { qrPayload: string };
-}
-
-interface MetricsResult {
-  confirmed: number;
-  checkedIn: number;
-}
-
-test("@full cria evento, inscreve participante, valida ingresso e atualiza dashboard", async ({ browser }) => {
+test("@full jornada pela interface: tipos, grupo, fila, promoção, QR e check-in", async ({ page, browser }) => {
+  test.setTimeout(180_000);
   test.skip(!process.env.E2E_FULL, "Exige a stack completa do Docker Compose.");
-
   const suffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const password = "EventHub@2026";
-  const organizer = await browser.newContext();
-  const participant = await browser.newContext();
-  const organizerRequest = organizer.request;
-  const participantRequest = participant.request;
-
+  const title = `Evento E2E ${suffix}`;
+  const participantContext = await browser.newContext();
+  const participant = await participantContext.newPage();
+  const waitingContext = await browser.newContext();
+  const waiting = await waitingContext.newPage();
   try {
-    const organizerRegistration = await organizerRequest.post("/api/auth/register", {
-      data: {
-        name: "Organizador E2E",
-        email: `organizador-${suffix}@eventhub.test`,
-        password,
-        organizer: true,
-      },
-    });
-    expect(organizerRegistration.status()).toBe(201);
+    await page.goto("/cadastro");
+    await page.waitForLoadState("networkidle");
+    await page.getByLabel("Nome completo").fill("Organizador E2E");
+    await page.getByLabel("E-mail").fill(`org-${suffix}@eventhub.test`);
+    await page.getByLabel("Senha").fill(password);
+    await page.getByLabel("Quero organizar eventos").check();
+    const [organizerSignup] = await Promise.all([page.waitForResponse((response) => response.url().endsWith("/api/auth/register")), page.getByRole("button", { name: "Criar minha conta" }).click()]);
+    expect(organizerSignup.status(), await organizerSignup.text()).toBe(201);
+    await expect(page).toHaveURL(/\/organizador\/eventos/, { timeout: 15000 });
 
-    const startsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
-    const endsAt = new Date(startsAt.getTime() + 4 * 60 * 60 * 1000);
-    const title = `Evento E2E ${suffix}`;
-    const eventResponse = await organizerRequest.post("/api/backend/events", {
-      data: {
-        title,
-        description: "Evento criado automaticamente para validar todo o fluxo operacional do EventHub.",
-        venue: "Centro de Testes",
-        address: "Rua da Qualidade, 100",
-        city: "Florianópolis",
-        state: "SC",
-        timezone: "America/Sao_Paulo",
-        startsAt: startsAt.toISOString(),
-        endsAt: endsAt.toISOString(),
-        capacity: 10,
-        coverUrl: null,
-        coverPublicId: null,
-      },
-    });
-    expect(eventResponse.status()).toBe(201);
-    const event = (await eventResponse.json()) as EventResult;
+    await page.goto("/organizador/eventos/novo");
+    await page.getByLabel("Nome do evento").fill(title);
+    await page.getByLabel("Descrição").fill("Evento fictício para demonstração e teste completo dos fluxos de ingressos em grupo.");
+    await page.getByLabel("Local", { exact: true }).fill("Centro de Testes");
+    await page.getByLabel("Endereço").fill("Rua da Qualidade, 100");
+    await page.getByLabel("Cidade").fill("Florianópolis");
+    await page.getByLabel("Estado").fill("SC");
+    const future = new Date(Date.now() + 14 * 86400000);
+    const local = new Date(future.getTime() - future.getTimezoneOffset() * 60000);
+    const start = local.toISOString().slice(0, 16);
+    const end = new Date(local.getTime() + 4 * 3600000).toISOString().slice(0, 16);
+    await page.getByLabel("Início").fill(start);
+    await page.getByLabel("Término").fill(end);
+    await page.getByLabel("Nome do tipo 1").fill("Pista");
+    await page.getByLabel("Vagas do tipo 1").fill("2");
+    await page.getByRole("button", { name: "Adicionar tipo" }).click();
+    await page.getByLabel("Nome do tipo 2").fill("Arquibancada");
+    await page.getByLabel("Vagas do tipo 2").fill("2");
+    await page.getByRole("button", { name: "Criar rascunho" }).click();
+    await expect(page).toHaveURL(/\/organizador\/eventos\/[0-9a-f-]+$/);
+    const eventId = page.url().split("/").pop()!;
+    await page.getByRole("button", { name: "Publicar evento" }).click();
+    await expect(page.getByText("Publicado", { exact: true }).first()).toBeVisible();
+    const eventListResponse = await page.request.get("/api/backend/events/organizer/mine");
+    const eventList = await eventListResponse.json();
+    const slug = eventList.find((item: { id: string }) => item.id === eventId).slug as string;
 
-    const publication = await organizerRequest.post(`/api/backend/events/${event.id}/publish`);
-    expect(publication.ok()).toBeTruthy();
+    await participant.goto("/cadastro");
+    await participant.waitForLoadState("networkidle");
+    await participant.getByLabel("Nome completo").fill("Participante E2E");
+    await participant.getByLabel("E-mail").fill(`participant-${suffix}@eventhub.test`);
+    await participant.getByLabel("Senha").fill(password);
+    const [participantSignup] = await Promise.all([participant.waitForResponse((response) => response.url().endsWith("/api/auth/register")), participant.getByRole("button", { name: "Criar minha conta" }).click()]);
+    expect(participantSignup.status(), await participantSignup.text()).toBe(201);
+    await expect(participant).toHaveURL(/\/meus-ingressos/, { timeout: 15000 });
+    await participant.goto(`/eventos/${slug}`);
+    await participant.getByLabel("Tipo de ingresso").selectOption({ label: "Pista · 2 vagas" });
+    await participant.getByLabel("Quantidade").selectOption("2");
+    await participant.getByLabel("Nome no ingresso 1").fill("Pessoa Um");
+    await participant.getByLabel("Nome no ingresso 2").fill("Pessoa Dois");
+    await participant.getByRole("button", { name: /Garantir ingressos gratuitos/ }).click();
+    await expect(participant).toHaveURL(/\/ingressos\/[0-9a-f-]+$/);
+    await expect(participant.getByText("Pessoa Um")).toBeVisible();
+    await participant.goto(`/eventos/${slug}`);
+    await participant.getByLabel("Tipo de ingresso").selectOption({ label: "Arquibancada · 2 vagas" });
+    await participant.getByLabel("Nome no ingresso 1").fill("Pessoa Extra");
+    await participant.getByRole("button", { name: /Garantir ingressos gratuitos/ }).click();
+    await expect(participant).toHaveURL(/\/ingressos\/[0-9a-f-]+$/);
+    await participant.goto("/meus-ingressos");
+    await expect(participant.getByText("Pessoa Dois")).toBeVisible();
+    const ticketsResponse = await participant.request.get("/api/backend/tickets/mine");
+    const tickets = await ticketsResponse.json();
+    expect(tickets.filter((ticket: { eventId: string; ticketTypeName: string }) => ticket.eventId === eventId && ticket.ticketTypeName === "Pista")).toHaveLength(2);
+    const qrPayload = tickets.find((ticket: { attendeeName: string }) => ticket.attendeeName === "Pessoa Um").qrPayload as string;
 
-    const participantRegistration = await participantRequest.post("/api/auth/register", {
-      data: {
-        name: "Participante E2E",
-        email: `participante-${suffix}@eventhub.test`,
-        password,
-        organizer: false,
-      },
-    });
-    expect(participantRegistration.status()).toBe(201);
+    await waiting.goto("/cadastro");
+    await waiting.waitForLoadState("networkidle");
+    await waiting.getByLabel("Nome completo").fill("Pessoa em Espera");
+    await waiting.getByLabel("E-mail").fill(`waiting-${suffix}@eventhub.test`);
+    await waiting.getByLabel("Senha").fill(password);
+    const [waitingSignup] = await Promise.all([waiting.waitForResponse((response) => response.url().endsWith("/api/auth/register")), waiting.getByRole("button", { name: "Criar minha conta" }).click()]);
+    expect(waitingSignup.status(), await waitingSignup.text()).toBe(201);
+    await expect(waiting).toHaveURL(/\/meus-ingressos/, { timeout: 15000 });
+    await waiting.goto(`/eventos/${slug}`);
+    await waiting.getByLabel("Tipo de ingresso").selectOption({ label: "Pista · 0 vagas" });
+    await waiting.getByLabel("Nome no ingresso 1").fill("Pessoa Fila");
+    await waiting.getByRole("button", { name: "Entrar na lista de espera" }).click();
+    await expect(waiting).toHaveURL(/\/meus-ingressos/);
+    await expect(waiting.getByText(/posição 1/)).toBeVisible();
 
-    const registrationResponse = await participantRequest.post(`/api/backend/events/${event.id}/registrations`);
-    expect(registrationResponse.status()).toBe(201);
-    const registration = (await registrationResponse.json()) as RegistrationResult;
+    await participant.goto("/meus-ingressos");
+    await participant.getByText("Pessoa Dois").click();
+    await expect(participant).toHaveURL(/\/ingressos\/[0-9a-f-]+$/);
+    const cancelledTicketId = participant.url().split("/").pop()!;
+    participant.once("dialog", (dialog) => dialog.accept());
+    const cancellation = participant.waitForResponse((response) => response.url().endsWith(`/api/backend/tickets/${cancelledTicketId}`) && response.request().method() === "DELETE");
+    await participant.getByRole("button", { name: "Cancelar este ingresso" }).click();
+    expect((await cancellation).status()).toBe(204);
+    await expect(participant.getByText("Ingresso cancelado", { exact: true })).toBeVisible();
+    await waiting.reload();
+    await expect(waiting.getByText("Pessoa Fila")).toBeVisible();
+    await expect(waiting.getByText(/posição 1/)).toHaveCount(0);
 
-    const checkIn = await organizerRequest.post(`/api/backend/organizer/events/${event.id}/check-ins`, {
-      data: { token: registration.ticket.qrPayload },
-    });
-    expect(checkIn.status()).toBe(201);
-
-    const repeatedCheckIn = await organizerRequest.post(`/api/backend/organizer/events/${event.id}/check-ins`, {
-      data: { token: registration.ticket.qrPayload },
-    });
-    expect(repeatedCheckIn.status()).toBe(409);
-    await expect(repeatedCheckIn.json()).resolves.toMatchObject({ code: "ALREADY_CHECKED_IN" });
-
-    const metricsResponse = await organizerRequest.get(`/api/backend/organizer/events/${event.id}/metrics`);
-    expect(metricsResponse.ok()).toBeTruthy();
-    const metrics = (await metricsResponse.json()) as MetricsResult;
-    expect(metrics).toMatchObject({ confirmed: 1, checkedIn: 1 });
-
-    const dashboard = await organizer.newPage();
-    await dashboard.goto(`/organizador/eventos/${event.id}`);
-    await expect(dashboard.getByRole("heading", { name: title })).toBeVisible();
-    await expect(dashboard.getByText("1 inscrição no total")).toBeVisible();
+    await page.goto(`/organizador/eventos/${eventId}/check-in`);
+    await page.getByPlaceholder("v1.ticket.assinatura").fill(qrPayload);
+    await page.getByRole("button", { name: "Validar ingresso" }).click();
+    await expect(page.getByText("Entrada autorizada")).toBeVisible();
+    await page.getByRole("button", { name: "Validar ingresso" }).click();
+    await expect(page.getByRole("heading", { name: "Ingresso já utilizado" })).toBeVisible();
+    await page.goto(`/organizador/eventos/${eventId}`);
+    await expect(page.getByRole("heading", { name: title })).toBeVisible();
+    await expect(page.getByText("3", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("1", { exact: true }).first()).toBeVisible();
   } finally {
-    await participant.close();
-    await organizer.close();
+    await participantContext.close().catch(() => {});
+    await waitingContext.close().catch(() => {});
   }
 });

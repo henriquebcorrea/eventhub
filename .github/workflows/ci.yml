@@ -84,7 +84,7 @@ jobs:
         working-directory: frontend
         env:
           E2E_FULL: "1"
-        run: pnpm test:e2e --project=chromium --grep @full
+        run: pnpm test:e2e --grep @full
       - name: Diagnóstico e limpeza
         if: always()
         run: docker compose logs --no-color > compose.log && docker compose down --volumes
