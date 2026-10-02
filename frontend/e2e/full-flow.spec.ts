@@ -32,7 +32,7 @@ test("@full jornada pela interface: tipos, grupo, fila, promoção, QR e check-i
     const local = new Date(future.getTime() - future.getTimezoneOffset() * 60000);
     const start = local.toISOString().slice(0, 16);
     const end = new Date(local.getTime() + 4 * 3600000).toISOString().slice(0, 16);
-    await page.getByLabel("Início").fill(start);
+    await page.getByLabel("Início", { exact: true }).fill(start);
     await page.getByLabel("Término").fill(end);
     await page.getByLabel("Nome do tipo 1").fill("Pista");
     await page.getByLabel("Vagas do tipo 1").fill("2");
