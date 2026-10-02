@@ -93,6 +93,7 @@ test("@full jornada pela interface: tipos, grupo, fila, promoção, QR e check-i
 
     await participant.goto("/meus-ingressos");
     await participant.getByText("Pessoa Dois").click();
+    await expect(participant).toHaveURL(/\/ingressos\/[0-9a-f-]+$/);
     const cancelledTicketId = participant.url().split("/").pop()!;
     participant.once("dialog", (dialog) => dialog.accept());
     const cancellation = participant.waitForResponse((response) => response.url().endsWith(`/api/backend/tickets/${cancelledTicketId}`) && response.request().method() === "DELETE");
