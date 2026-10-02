@@ -20,4 +20,11 @@ describe("catálogo em produção", () => {
     await expect(getEvent("nao-existe")).resolves.toBeNull();
     await expect(getEvent("festival")).rejects.toThrow("EVENTHUB_API_UNAVAILABLE");
   });
+
+  it("consulta a disponibilidade atual do evento sem cache", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "evento" }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await getEvent("festival");
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/events/festival"), expect.objectContaining({ cache: "no-store" }));
+  });
 });
