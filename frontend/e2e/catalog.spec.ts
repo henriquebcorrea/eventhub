@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 test("catálogo permite encontrar e abrir um evento", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Encontre um evento/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /A noite acontece lá fora/ })).toBeVisible();
   await page.getByPlaceholder("Evento ou tema").fill("Rock");
   await page.getByRole("button", { name: "Buscar" }).click();
   await expect(page.getByRole("heading", { name: "Festival de Rock 2026" })).toBeVisible();

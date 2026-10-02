@@ -47,12 +47,12 @@ export function RegisterButton({ eventId, types }: { eventId: string; types: Non
 
   return <div className="grid gap-4">
     <label className="grid gap-1.5 text-sm font-bold">Tipo de ingresso
-      <select className="focus-ring h-11 rounded-xl border border-slate-200 bg-white px-3" value={typeId} onChange={(event) => setTypeId(event.target.value)}>
+      <select className="focus-ring h-11 rounded-sm border border-slate-200 bg-white px-3 text-[var(--navy)]" value={typeId} onChange={(event) => setTypeId(event.target.value)}>
         {types.map((type) => <option key={type.id} value={type.id}>{type.name} · {type.available} vagas{type.waitingCount ? " · fila ativa" : ""}</option>)}
       </select>
     </label>
     <label className="grid gap-1.5 text-sm font-bold">Quantidade (até 4)
-      <select className="focus-ring h-11 rounded-xl border border-slate-200 bg-white px-3" value={names.length} onChange={(event) => {
+      <select className="focus-ring h-11 rounded-sm border border-slate-200 bg-white px-3 text-[var(--navy)]" value={names.length} onChange={(event) => {
         const quantity = Number(event.target.value);
         setNames(Array.from({ length: quantity }, (_, index) => names[index] ?? ""));
       }}>{[1, 2, 3, 4].map((quantity) => <option key={quantity} value={quantity}>{quantity} {quantity === 1 ? "ingresso" : "ingressos"}</option>)}</select>
