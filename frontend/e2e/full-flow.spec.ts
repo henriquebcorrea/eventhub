@@ -99,7 +99,7 @@ test("@full jornada pela interface: tipos, grupo, fila, promoção, QR e check-i
     const cancellation = participant.waitForResponse((response) => response.url().endsWith(`/api/backend/tickets/${cancelledTicketId}`) && response.request().method() === "DELETE");
     await participant.getByRole("button", { name: "Cancelar este ingresso" }).click();
     expect((await cancellation).status()).toBe(204);
-    await expect(participant.getByText("Ingresso cancelado")).toBeVisible();
+    await expect(participant.getByText("Ingresso cancelado", { exact: true })).toBeVisible();
     await waiting.reload();
     await expect(waiting.getByText("Pessoa Fila")).toBeVisible();
     await expect(waiting.getByText(/posição 1/)).toHaveCount(0);
@@ -109,7 +109,7 @@ test("@full jornada pela interface: tipos, grupo, fila, promoção, QR e check-i
     await page.getByRole("button", { name: "Validar ingresso" }).click();
     await expect(page.getByText("Entrada autorizada")).toBeVisible();
     await page.getByRole("button", { name: "Validar ingresso" }).click();
-    await expect(page.getByText("Ingresso já utilizado")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Ingresso já utilizado" })).toBeVisible();
     await page.goto(`/organizador/eventos/${eventId}`);
     await expect(page.getByRole("heading", { name: title })).toBeVisible();
     await expect(page.getByText("3", { exact: true }).first()).toBeVisible();
