@@ -29,7 +29,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     const safeNext = requested?.startsWith("/") && !requested.startsWith("//") && !requested.includes("\\") ? requested : null;
     router.push(safeNext || (session.roles.includes("ORGANIZER") ? "/organizador/eventos" : "/meus-ingressos")); router.refresh();
   }
-  return <form onSubmit={handleSubmit(submit)} className="grid gap-4">
+  return <form method="post" onSubmit={handleSubmit(submit)} className="grid gap-4">
     {mode === "register" && <label className="grid gap-1.5 text-sm font-bold">Nome completo<Input autoComplete="name" {...register("name")} /><span className="text-xs font-normal text-red-600">{errors.name?.message}</span></label>}
     <label className="grid gap-1.5 text-sm font-bold">E-mail<Input type="email" autoComplete="email" {...register("email")} /><span className="text-xs font-normal text-red-600">{errors.email?.message}</span></label>
     <label className="grid gap-1.5 text-sm font-bold">Senha<Input type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} {...register("password")} /><span className="text-xs font-normal text-red-600">{errors.password?.message}</span></label>

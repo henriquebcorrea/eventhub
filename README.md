@@ -4,7 +4,7 @@ Plataforma full stack para publicar eventos gratuitos, controlar inscrições e 
 
 **Online:** [abrir EventHub](https://eventhub-alpha-sandy.vercel.app) · [API e Swagger](https://eventhub-api-3c8f.onrender.com/swagger-ui.html) · [health check](https://eventhub-api-3c8f.onrender.com/actuator/health)
 
-A demonstração pública utiliza Vercel Hobby, Render Free, Neon Free e Cloudinary Free. O envio de e-mails permanece em sandbox até existir um domínio de remetente verificado. A vitrine contém seis eventos fictícios, todos com dois tipos gratuitos e capas originais. Os ingressos emitidos são apenas demonstrativos e não dão acesso a eventos reais. Crie sua própria conta para experimentar; as credenciais de demonstração descritas abaixo existem apenas no ambiente local com seed habilitado.
+A demonstração pública utiliza Vercel Hobby, Render Free, Neon Free e Cloudinary Free. A interface usa uma identidade de cartaz de festival noturno: Syne e DM Sans, grafite, papel, coral e verde-lima. O envio de e-mails permanece em sandbox até existir um domínio de remetente verificado. A vitrine contém seis eventos fictícios, todos com dois tipos gratuitos e capas originais. Os ingressos emitidos são apenas demonstrativos e não dão acesso a eventos reais. Crie sua própria conta para experimentar; as credenciais de demonstração descritas abaixo existem apenas no ambiente local com seed habilitado.
 
 As capturas da vitrine foram feitas no site público com o filtro de data a partir de janeiro de 2027, para mostrar somente os seis eventos fictícios desta entrega.
 
@@ -182,7 +182,7 @@ cd frontend
 pnpm generate:api
 ```
 
-O pipeline em `.github/workflows/ci.yml` executa lint, typecheck, testes e builds. Depois, sobe a aplicação completa com Docker Compose, verifica a geração de tipos a partir do OpenAPI e testa criação, publicação, inscrição, ingresso, check-in repetido e dashboard.
+O pipeline em `.github/workflows/ci.yml` executa lint, typecheck, testes e builds. O Playwright confere busca e ausência de rolagem horizontal em 320, 390, 768, 1024 e 1440 px, inclusive com o menu mobile aberto. Depois, o CI sobe a aplicação completa com Docker Compose, verifica a geração de tipos a partir do OpenAPI e testa criação, publicação, inscrição, fila, cancelamento, QR, check-in repetido e dashboard em desktop e mobile.
 
 Depois da publicação, `node scripts/verify-public.mjs` executa uma verificação transacional contra a API pública: cria um evento técnico temporário, reserva um grupo e outro tipo, entra na fila, cancela um ingresso, confirma a promoção, verifica QR Codes individuais, rejeita o segundo check-in e confere as métricas. Informe `EVENTHUB_DEMO_EMAIL` e `EVENTHUB_DEMO_PASSWORD` somente no ambiente privado. O script cancela o evento técnico ao terminar, inclusive se uma etapa falhar; as contas de teste permanecem cadastradas. A jornada equivalente pela interface é coberta no Playwright desktop e mobile no CI.
 
